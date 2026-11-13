@@ -13,10 +13,12 @@ import Colors from '../../constants/colors';
 import { formatDate, formatAmount } from '../../utils/format';
 
 export default function HistoryScreen() {
-  const { expenses } = useAppStorage();
+  const { expenses, customCategories } = useAppStorage();
   const [query,     setQuery]     = useState('');
   const [activecat, setActiveCat] = useState<CategoryKey | 'all'>('all');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const allCategories = [...CATEGORIES, ...customCategories];
 
   const filtered = useMemo(() => {
     return expenses.filter((e) => {
@@ -31,19 +33,19 @@ export default function HistoryScreen() {
 
   // Calculate category totals for bar graph
   const categoryTotals = useMemo(() => {
-    const totals = new Map<CategoryKey, number>();
+    const totals = new Map<CategoryKey | string, number>();
     filtered.forEach((e) => {
       totals.set(e.category, (totals.get(e.category) || 0) + e.amount);
     });
     
     const maxAmount = Math.max(...Array.from(totals.values()), 1);
     
-    return CATEGORIES.map((cat) => ({
+    return allCategories.map((cat) => ({
       ...cat,
       total: totals.get(cat.key) || 0,
       percentage: ((totals.get(cat.key) || 0) / maxAmount) * 100,
     })).filter((cat) => cat.total > 0);
-  }, [filtered]);
+  }, [filtered, allCategories]);
 
   const totalSpent = useMemo(() => {
     return filtered.reduce((sum, e) => sum + e.amount, 0);
@@ -51,7 +53,7 @@ export default function HistoryScreen() {
 
   const selectedCategory = activecat === 'all' 
     ? { emoji: '📊', label: 'All Categories' }
-    : getCategoryByKey(activecat);
+    : getCategoryByKey(activecat, customCategories);
 
   const handleSelectCategory = (cat: CategoryKey | 'all') => {
     setActiveCat(cat);
@@ -145,6 +147,22 @@ export default function HistoryScreen() {
                   )}
                 </TouchableOpacity>
               ))}
+
+              {customCategories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.key}
+                  style={[styles.modalItem, activecat === cat.key && styles.modalItemActive]}
+                  onPress={() => handleSelectCategory(cat.key)}
+                >
+                  <Text style={styles.modalEmoji}>{cat.emoji}</Text>
+                  <Text style={[styles.modalItemText, activecat === cat.key && styles.modalItemTextActive]}>
+                    {cat.label}
+                  </Text>
+                  {activecat === cat.key && (
+                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -190,7 +208,7 @@ export default function HistoryScreen() {
             {/* Transaction List */}
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
             {filtered.slice(0, 20).map((expense) => {
-              const cat = CATEGORIES.find((c) => c.key === expense.category)!;
+              const cat = getCategoryByKey(expense.category as CategoryKey, customCategories);
               return (
                 <TouchableOpacity
                   key={expense.id}
@@ -232,8 +250,8 @@ const styles = StyleSheet.create({
   totalBadge: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    color: '#fff',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,

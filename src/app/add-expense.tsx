@@ -17,7 +17,7 @@ export default function AddExpenseScreen() {
   const { addExpense } = useAppStorage();
 
   const [amount,   setAmount]   = useState('');
-  const [category, setCategory] = useState<CategoryKey>('food');
+  const [category, setCategory] = useState<CategoryKey | string>('food');
   const [note,     setNote]     = useState('');
   const [date,     setDate]     = useState(todayISO());
   const [error,    setError]    = useState('');

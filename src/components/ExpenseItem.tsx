@@ -1,9 +1,10 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import Colors from '../constants/colors';
-import { getCategoryByKey } from '../constants/categories';
+import { getCategoryByKey, CategoryKey } from '../constants/categories';
 import { Expense } from '../hooks/useStorage';
 import { formatAmount, formatDate } from '../utils/format';
+import { useAppStorage } from '../hooks/StorageContext';
 
 interface Props {
   expense:  Expense;
@@ -11,7 +12,8 @@ interface Props {
 }
 
 export default function ExpenseItem({ expense, onPress }: Props) {
-  const cat = getCategoryByKey(expense.category);
+  const { customCategories } = useAppStorage();
+  const cat = getCategoryByKey(expense.category as CategoryKey, customCategories);
 
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>

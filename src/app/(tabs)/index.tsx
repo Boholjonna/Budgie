@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Pressable,
@@ -14,8 +14,11 @@ import { formatAmount, formatDate, todayISO } from '../../utils/format';
 import DonutChart from '../../components/DonutChart';
 import ExpenseItem from '../../components/ExpenseItem';
 
+type SortOrder = 'high-to-low' | 'low-to-high';
+
 export default function HomeScreen() {
-  const { expenses, dailyAllowance, loaded } = useAppStorage();
+  const { expenses, dailyAllowance, loaded, customCategories } = useAppStorage();
+  const [sortOrder, setSortOrder] = useState<SortOrder>('high-to-low');
 
   const todayStr = todayISO();
 
@@ -38,13 +41,16 @@ export default function HomeScreen() {
     todayExpenses.forEach((e) => {
       map[e.category] = (map[e.category] ?? 0) + e.amount;
     });
-    return Object.entries(map)
+    const sorted = Object.entries(map)
       .map(([catKey, total]) => {
-        const cat = getCategoryByKey(catKey as CategoryKey);
+        const cat = getCategoryByKey(catKey as CategoryKey, customCategories);
         return { catKey, total, label: cat.label, emoji: cat.emoji, color: cat.color };
-      })
-      .sort((a, b) => b.total - a.total);
-  }, [todayExpenses]);
+      });
+    
+    return sortOrder === 'high-to-low' 
+      ? sorted.sort((a, b) => b.total - a.total)
+      : sorted.sort((a, b) => a.total - b.total);
+  }, [todayExpenses, sortOrder, customCategories]);
 
   // Donut slices
   const donutSlices = catTotals.map((c) => ({ value: c.total, color: c.color }));
@@ -116,7 +122,23 @@ export default function HomeScreen() {
         {/* Category bars */}
         {catTotals.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Today's Breakdown</Text>
+            <View style={styles.breakdownHeader}>
+              <Text style={styles.sectionTitle}>Today's Breakdown</Text>
+              <TouchableOpacity
+                style={styles.sortBtn}
+                onPress={() => setSortOrder(sortOrder === 'high-to-low' ? 'low-to-high' : 'high-to-low')}
+                activeOpacity={0.7}
+              >
+                <Ionicons 
+                  name={sortOrder === 'high-to-low' ? 'arrow-down' : 'arrow-up'} 
+                  size={14} 
+                  color="#fff" 
+                />
+                <Text style={styles.sortText}>
+                  {sortOrder === 'high-to-low' ? 'High to Low' : 'Low to High'}
+                </Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.bars}>
               {catTotals.map((c) => {
                 const fraction = spentToday > 0 ? c.total / spentToday : 0;
@@ -211,7 +233,7 @@ const styles = StyleSheet.create({
     flexDirection:   'row',
     justifyContent:  'space-between',
     alignItems:      'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: 'rgba(84, 54, 234, 0.85)', 
     marginBottom:    24,
     shadowColor:     Colors.primary,
     shadowOpacity:   0.5,
@@ -230,13 +252,13 @@ const styles = StyleSheet.create({
   cardAmount: { 
     fontSize: 26, 
     fontWeight: '800', 
-    color: '#fff',
+    color: '#fefdff',
     letterSpacing: -0.5,
   },
   cardRemaining: { 
     fontSize: 20, 
     fontWeight: '700', 
-    color: '#fff',
+    color: '#f1edfc',
     letterSpacing: -0.3,
   },
 
@@ -290,6 +312,26 @@ const styles = StyleSheet.create({
     fontWeight: '800', 
     color: Colors.text,
     letterSpacing: -0.3,
+  },
+  breakdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  sortText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
   },
   viewAll: { 
     fontSize: 13, 

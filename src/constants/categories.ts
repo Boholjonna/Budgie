@@ -5,7 +5,8 @@ export type CategoryKey =
   | 'shopping'
   | 'health'
   | 'leisure'
-  | 'others';
+  | 'others'
+  | string; // Allow custom category keys
 
 export interface Category {
   key: CategoryKey;
@@ -24,5 +25,7 @@ export const CATEGORIES: Category[] = [
   { key: 'others',    label: 'Others',    emoji: '📦', color: '#B2BEC3' },
 ];
 
-export const getCategoryByKey = (key: CategoryKey): Category =>
-  CATEGORIES.find((c) => c.key === key) ?? CATEGORIES[6];
+export const getCategoryByKey = (key: CategoryKey, customCategories: Category[] = []): Category => {
+  const allCategories = [...CATEGORIES, ...customCategories];
+  return allCategories.find((c) => c.key === key) ?? CATEGORIES[6];
+};
